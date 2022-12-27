@@ -43,7 +43,7 @@ print("Reading data from files completed")
 print("Building dictionaries...")
 
 
-horas_totales = np.shape(nightStart)[0]*24
+horas_totales = (nightStart[-1,0]+1)*24
 
 H_ = range(horas_totales)
 DU = list(nightStart[:,0])
