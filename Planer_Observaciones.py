@@ -20,13 +20,14 @@ Period = specObs[:,2]*24 // 1
 horas_totales = (nightStart[-1,0]+1)*24
 
 #Massage period for useful information
-subPeriod = [int(min(5, x // 10 + 1)) for x in Period]
+
 
 Priority[np.isnan(Period)] = 0
 Priority[Period == 0] = 0
 Period[Period == 0] = 1e9
 Period[np.isnan(Period)] = 1e9
-Priority[2*Period >= horas_totales] = 0
+
+subPeriod = [int(min(5, x // 10 + 1)) for x in Period]
 
 print("Reading data from files completed")
 
@@ -61,7 +62,8 @@ for h in H_:
             alt[i,h] = a[i,hd,DU.index(d)]
         else:
             alt[i,h] = 0
-
+            
+            
 V_ = []
 for i in I_:
     temp = []
@@ -71,6 +73,7 @@ for i in I_:
     else:
         temp.append(range(horas_totales))
     V_.append(temp)
+    
     
 l = []
 for i in I_:
@@ -96,8 +99,9 @@ model.addConstrs((quicksum(x[i,h] for h in H_) <= 10000 * z[i] for i in I_), nam
 model.addConstrs((z[i] <= quicksum(x[i,h] for h in H_) for i in I_), name = "Activar target (2/2)")
 model.addConstrs((quicksum(x[i,h] for h in H_) <= 12 * z[i] for i in I_), name = "No observar mas de doce veces un mismo target")
 model.addConstrs((quicksum(y[i,v] for v in range(len(V_[i]))) >= z[i] for i in I_), name = "Si se observa un target, tiene que haber alguna ventana activa")
-model.addConstrs((quicksum(x[i,h] for h in V_[i][v]) >= 10*y[i,v] for i in I_ for v in range(len(V_[i]))), name = "Observar al menos cinco veces durante la ventana")
+model.addConstrs((quicksum(x[i,h] for h in V_[i][v]) >= 10*y[i,v] for i in I_ for v in range(len(V_[i]))), name = "Observar al menos diez veces durante la ventana")
 model.addConstrs((quicksum(x[i,k] for k in range(h,h+subPeriod[i])) <= 1 for i in I_ for h in range(horas_totales - subPeriod[i])), name = "Separacion entre observaciones proporcional al periodo")
+
 
 
 print("Building model completed")
