@@ -56,6 +56,20 @@ TOI_df = TOI_df.loc[singlePlanets]
 singlePlanets = np.flatnonzero(np.core.defchararray.find(np.array(list(map(str, CTOI_df.index))), '.01') != -1)
 singlePlanets = CTOI_df.index[singlePlanets]
 CTOI_df = CTOI_df.loc[singlePlanets]
+with open('dontObserve.txt', 'r') as f:
+    dontObserve = [line.rstrip() for line in f]
+print('The following targets will not be considered for observations:')
+for i in dontObserve:
+    posTOI = np.flatnonzero(np.core.defchararray.find(np.array(list(map(str, TOI_df['TIC ID']))), i.strip('TIC')) != -1)
+    posCTOI = np.flatnonzero(np.core.defchararray.find(np.array(list(map(str, CTOI_df['TIC ID']))), i.strip('TIC')) != -1)
+    for j in posTOI:
+        drop_index = TOI_df.index[j]
+        TOI_df = TOI_df.drop(drop_index)
+    for j in posCTOI:
+        drop_index = CTOI_df.index[j]
+        CTOI_df = CTOI_df.drop(drop_index)
+    print(f'\t{i}')
+    # Reads the target names that won't be observed.
 print("Number of TOIs PCs and APCs under TESS mag 9.5:", len(TOI_df))
 print("Number of CTOIs PCs under TESS mag 9.5:", len(CTOI_df),'\n')
 # Comienza el ciclo
@@ -77,12 +91,6 @@ laSilla = EarthLocation.from_geodetic(-70.7375, -29.2575, [2347])
 with open('nightStartTime.txt', 'w') as f:
     pass
     # Creates the text file or cleans it
-with open('dontObserve.txt', 'r') as f:
-    dontObserve = [line.rstrip() for line in f]
-print('The following targets will not be considered for observations:')
-for i in dontObserve:
-    print(f'\t{i}')
-    # Reads the target names that won't be observed.
 contador = 0
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
@@ -130,7 +138,7 @@ with warnings.catch_warnings():
                                  unit=(u.hourangle, u.deg, u.pc), obstime=obsDateTime)
             with erfa_astrom.set(ErfaAstromInterpolator(int(steps/60) * u.hour)): 
                 temp = targetPos.transform_to(aaFrame)
-                if np.array([temp.alt.value>=50]).sum() >= 60 and target['SG2'] <= 3 and not(str(target['TIC ID']) in dontObserve):
+                if np.array([temp.alt.value>=50]).sum() >= 60 and target['SG2'] <= 3:
                     # Si el target esta sobre 50 grados por 1 hora o mas, se muestrea cada 1 hora.
                     x = 0
                     for i in samplingIndexes:
@@ -143,7 +151,7 @@ with warnings.catch_warnings():
                                  unit=(u.hourangle, u.deg, u.pc), obstime=obsDateTime)
             with erfa_astrom.set(ErfaAstromInterpolator(int(steps/60) * u.hour)): 
                 temp = targetPos.transform_to(aaFrame)
-                if np.array([temp.alt.value>=50]).sum() >= 60 and not(str(target['TIC ID']) in dontObserve):
+                if np.array([temp.alt.value>=50]).sum() >= 60:
                     # Si el target esta sobre 50 grados por 1 hora o mas, se muestrea cada 1 hora.
                     x = 0
                     for i in samplingIndexes:
