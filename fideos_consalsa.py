@@ -119,7 +119,11 @@ with warnings.catch_warnings():
         samplingIndexes = np.linspace(30, steps-30, int(steps/60), dtype=int)
         sampledOutput   = np.zeros([len(TOI_df)+len(CTOI_df), int(steps/60)])
         y = 0
+        simulated = []
         for target in TOI_df.iloc:
+            if target['TIC ID'] in simulated:
+                y += 1
+                continue
             targetPos = SkyCoord(ra=target['RA'], dec=target['Dec'], distance=target['Stellar Distance (pc)'] ,
                                  unit=(u.hourangle, u.deg, u.pc), obstime=obsDateTime)
             with erfa_astrom.set(ErfaAstromInterpolator(int(steps/60) * u.hour)): 
@@ -131,8 +135,12 @@ with warnings.catch_warnings():
                         # Si no esta sobre 50 grados por 1 hora minimo, no se rellena.
                         sampledOutput[y][x] = temp[i].alt.value
                         x += 1
+            simulated.append(target['TIC ID'])
             y += 1
         for target in CTOI_df.iloc:
+            if target['TIC ID'] in simulated:
+                y += 1
+                continue
             targetPos = SkyCoord(ra=target['RA'], dec=target['Dec'], distance=target['Stellar Distance (pc)'] ,
                                  unit=(u.hourangle, u.deg, u.pc), obstime=obsDateTime)
             with erfa_astrom.set(ErfaAstromInterpolator(int(steps/60) * u.hour)): 
@@ -144,6 +152,7 @@ with warnings.catch_warnings():
                         # Si no esta sobre 50 grados por 1 hora minimo, no se rellena.
                         sampledOutput[y][x] = temp[i].alt.value
                         x += 1
+            simulated.append(target['TIC ID'])
             y += 1
         print(f'Simulating nights: {np.round((day+1) * 100 /days_range, 2)}%', end="\r", flush=True)
         pd.DataFrame(sampledOutput).to_csv(f"data{contador}.csv", index=False, header=False)
