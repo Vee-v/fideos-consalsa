@@ -42,12 +42,12 @@ TOI_dfMag = TOI_df[bool_mask]
 bool_mask = CTOI_df['TESS Mag'] <= 9.5
 CTOI_df = CTOI_df[bool_mask]
 bool_mask = TOI_dfMag['TFOPWG Disposition'] == 'PC'
-TOI_dfPC = TOI_dfMag[bool_mask]
-bool_mask = TOI_dfMag['TFOPWG Disposition'] == 'APC'
-TOI_dfAPC = TOI_dfMag[bool_mask]
+TOI_df = TOI_dfMag[bool_mask]
+# bool_mask = TOI_dfMag['TFOPWG Disposition'] == 'APC'
+# TOI_dfAPC = TOI_dfMag[bool_mask]
 bool_mask = CTOI_df['User Disposition'] == 'PC'
 CTOI_df = CTOI_df[bool_mask]
-TOI_df = pd.concat([TOI_dfPC, TOI_dfAPC])
+# TOI_df = pd.concat([TOI_dfPC, TOI_dfAPC])
 TOI_df['Date TOI Alerted (UTC)'] = pd.to_datetime(TOI_df['Date TOI Alerted (UTC)'])
 TOI_df = TOI_df.sort_values(by='Date TOI Alerted (UTC)', ascending=False)
 singlePlanets = np.flatnonzero(np.core.defchararray.find(np.array(list(map(str, TOI_df.index))), '.01') != -1)
@@ -70,7 +70,7 @@ for i in dontObserve:
         CTOI_df = CTOI_df.drop(drop_index)
     print(f'\t{i}')
     # Reads the target names that won't be observed.
-print("Number of TOIs PCs and APCs under TESS mag 9.5:", len(TOI_df))
+print("Number of TOIs PCs under TESS mag 9.5:", len(TOI_df))
 print("Number of CTOIs PCs under TESS mag 9.5:", len(CTOI_df),'\n')
 # Comienza el ciclo
 days_range = input('Choose the number of days to simulate:\n\t')
