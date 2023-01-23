@@ -166,10 +166,10 @@ with open('specObservations.txt', 'w') as f:
     pass
 with open('specObservations.txt', 'a') as f:
     for target in TOI_df.iloc:
-        if target['Period (days)'] > days_range / 2 + 1 or target['Period (days)'] == 0:
+        if target['Period (days)'] > days_range / 2 + 1 or target['Period (days)'] == 0 or target['Spectroscopy Observations'] > 1:
             prio = '0'
         else:
-            prio = str(np.exp(-target['Spectroscopy Observations']))
+            prio = str(np.exp(-target['Spectroscopy Observations'] - target['TESS Mag']))
         f.write(str(target['TIC ID']) +'|'+ prio +'|'+ str(target['Period (days)'])+'\n')
     for target in CTOI_df.iloc:
         if target['Period (days)'] > days_range / 2 + 1 or target['Period (days)'] == 0:
