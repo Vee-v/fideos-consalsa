@@ -50,6 +50,12 @@ CTOI_df = CTOI_df[bool_mask]
 TOI_df = pd.concat([TOI_dfPC, TOI_dfAPC])
 TOI_df['Date TOI Alerted (UTC)'] = pd.to_datetime(TOI_df['Date TOI Alerted (UTC)'])
 TOI_df = TOI_df.sort_values(by='Date TOI Alerted (UTC)', ascending=False)
+singlePlanets = np.flatnonzero(np.core.defchararray.find(np.array(list(map(str, TOI_df.index))), '.01') != -1)
+singlePlanets = TOI_df.index[singlePlanets]
+TOI_df = TOI_df.loc[singlePlanets]
+singlePlanets = np.flatnonzero(np.core.defchararray.find(np.array(list(map(str, CTOI_df.index))), '.01') != -1)
+singlePlanets = CTOI_df.index[singlePlanets]
+CTOI_df = CTOI_df.loc[singlePlanets]
 print("Number of TOIs PCs and APCs under TESS mag 9.5:", len(TOI_df))
 print("Number of CTOIs PCs under TESS mag 9.5:", len(CTOI_df),'\n')
 # Comienza el ciclo
@@ -117,13 +123,9 @@ with warnings.catch_warnings():
         aa_moonPos = moonPos.transform_to(aaFrame)  # TODO: output the Moon distance in the sky between targets and the moon.
         # Indices de muestreo para la altura del target cada una hora
         samplingIndexes = np.linspace(30, steps-30, int(steps/60), dtype=int)
-        sampledOutput   = np.zeros([len(TOI_df)+len(CTOI_df), int(steps/60)])
+        sampledOutput   = np.zeros([len(TOI_df) + len(CTOI_df), int(steps/60)])
         y = 0
-        simulated = []
         for target in TOI_df.iloc:
-            if target['TIC ID'] in simulated:
-                y += 1
-                continue
             targetPos = SkyCoord(ra=target['RA'], dec=target['Dec'], distance=target['Stellar Distance (pc)'] ,
                                  unit=(u.hourangle, u.deg, u.pc), obstime=obsDateTime)
             with erfa_astrom.set(ErfaAstromInterpolator(int(steps/60) * u.hour)): 
@@ -135,12 +137,8 @@ with warnings.catch_warnings():
                         # Si no esta sobre 50 grados por 1 hora minimo, no se rellena.
                         sampledOutput[y][x] = temp[i].alt.value
                         x += 1
-            simulated.append(target['TIC ID'])
             y += 1
         for target in CTOI_df.iloc:
-            if target['TIC ID'] in simulated:
-                y += 1
-                continue
             targetPos = SkyCoord(ra=target['RA'], dec=target['Dec'], distance=target['Stellar Distance (pc)'] ,
                                  unit=(u.hourangle, u.deg, u.pc), obstime=obsDateTime)
             with erfa_astrom.set(ErfaAstromInterpolator(int(steps/60) * u.hour)): 
@@ -152,7 +150,6 @@ with warnings.catch_warnings():
                         # Si no esta sobre 50 grados por 1 hora minimo, no se rellena.
                         sampledOutput[y][x] = temp[i].alt.value
                         x += 1
-            simulated.append(target['TIC ID'])
             y += 1
         print(f'Simulating nights: {np.round((day+1) * 100 /days_range, 2)}%', end="\r", flush=True)
         pd.DataFrame(sampledOutput).to_csv(f"data{contador}.csv", index=False, header=False)
@@ -160,23 +157,16 @@ with warnings.catch_warnings():
 with open('specObservations.txt', 'w') as f:
     pass
 with open('specObservations.txt', 'a') as f:
-    written = []
     for target in TOI_df.iloc:
-        if target['TIC ID'] in written:
-            continue
         if target['Period (days)'] > days_range / 2 + 1 or target['Period (days)'] == 0:
             prio = '0'
         else:
             prio = str(np.exp(-target['Spectroscopy Observations']))
         f.write(str(target['TIC ID']) +'|'+ prio +'|'+ str(target['Period (days)'])+'\n')
-        written.append(target['TIC ID'])
     for target in CTOI_df.iloc:
-        if target['TIC ID'] in written:
-            continue
         if target['Period (days)'] > days_range / 2 + 1 or target['Period (days)'] == 0:
             prio = '0'
         else:
             prio = str(np.exp(-(target['TESS Mag'] - 9)))
         f.write(str(target['TIC ID']) +'|'+ prio +'|'+ str(target['Period (days)'])+'\n')
-        written.append(target['TIC ID'])
 print('Simulation done! Now starting the optimization process...')
