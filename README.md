@@ -1,4 +1,4 @@
-# Scheduling Algorithm for Spectroscopic Adquisition (SALSA)
+# Scheduling ALgorithm for Spectroscopic Adquisition (SALSA)
 	FIDEOS con SALSA
 
 # Dependencies

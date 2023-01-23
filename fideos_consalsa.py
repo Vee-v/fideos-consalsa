@@ -52,24 +52,38 @@ TOI_df = TOI_df.sort_values(by='Date TOI Alerted (UTC)', ascending=False)
 print("Number of TOIs PCs and APCs under TESS mag 9.5:", len(TOI_df))
 print("Number of CTOIs PCs under TESS mag 9.5:", len(CTOI_df),'\n')
 # Comienza el ciclo
-days_range = input('Choose the number of days to simulate:\n')
+days_range = input('Choose the number of days to simulate:\n\t')
 days_range = int(days_range)
-date_input = input('Choose a CLT monday for when to start the simulation with the format\n yyyy-mm-dd:\n')
+date_input = input('Choose a CLT monday or wednesday for when to start the simulation with the format\n\tyyyy-mm-dd:\n\t')
 date = date_input.split('-')
-laSilla = EarthLocation.from_geodetic(-70.7375, -29.2575,[2347])
+try:
+    weekday = datetime(int(date[0]), int(date[1]), int(date[2])).weekday()
+except:
+    raise Exception('Wrong format for date. The format is:\n\tyyyy-mm-dd')
+if weekday != 0 and weekday != 2:
+    raise Exception('Please choose a valid date (Monday or Wednesday)')
+if weekday == 0:
+    print(f'Observing plan starts on\n\tMonday {date[0]}/{date[1]}/{date[2]}.')
+else :
+    print(f'Observing plan starts on\n\tWednesday {date[0]}, {date[1]}, {date[2]}.')
+laSilla = EarthLocation.from_geodetic(-70.7375, -29.2575, [2347])
 with open('nightStartTime.txt', 'w') as f:
     pass
     # Creates the text file or cleans it
 with open('dontObserve.txt', 'r') as f:
     dontObserve = [line.rstrip() for line in f]
-print('The following targets will not be considered for observations')
+print('The following targets will not be considered for observations:')
 for i in dontObserve:
-    print(i)
+    print(f'\t{i}')
     # Reads the target names that won't be observed.
 contador = 0
 for day in range(days_range):
-    if not(day % 7 == 0 or (day + 5) % 7 == 0):
-        continue  # In this version this statement skips days that are not M,W.
+    if weekday == 0:  # Monday
+        if not(day % 7 == 0 or (day + 5) % 7 == 0):
+            continue  # In this version this statement skips days that are not M,W.
+    elif weekday == 2:  # Wednesday
+        if not(day % 7 == 0 or (day + 2) % 7 == 0):
+            continue  # In this version this statement skips days that are not W,M.
     times = Time(datetime(int(date[0]), int(date[1]), int(date[2]), 23, 59, 0)) + day*u.day + np.linspace(-6, 9, 901)* u.hour
     # Ahora se busca el momento donde el sol cruza los -18° de altitud desde la posicion en La Silla
     
@@ -128,16 +142,22 @@ for day in range(days_range):
                     sampledOutput[y][x] = temp[i].alt.value
                     x += 1
         y += 1
-    print(f'Simulating nights: {np.round(day+1 * 100 /days_range, 2)}%', end="\r", flush=True)
+    print(f'Simulating nights: {np.round((day+1) * 100 /days_range, 2)}%', end="\r", flush=True)
     pd.DataFrame(sampledOutput).to_csv(f"data{contador}.csv", index=False, header=False)
     contador += 1
 with open('specObservations.txt', 'w') as f:
     pass
 with open('specObservations.txt', 'a') as f:
     for target in TOI_df.iloc:
-        prio = str(np.exp(-target['Spectroscopy Observations']))
+        if target['Period (days)'] > days_range / 2 + 1 or target['Period (days)'] == 0:
+            prio = '0'
+        else:
+            prio = str(np.exp(-target['Spectroscopy Observations']))
         f.write(str(target['TIC ID']) +'|'+ prio +'|'+ str(target['Period (days)'])+'\n')
     for target in CTOI_df.iloc:
-        prio = str(np.exp(-(target['TESS Mag']-9)))
+        if target['Period (days)'] > days_range / 2 + 1 or target['Period (days)'] == 0:
+            prio = '0'
+        else:
+            prio = str(np.exp(-(target['TESS Mag'] - 9)))
         f.write(str(target['TIC ID']) +'|'+ prio +'|'+ str(target['Period (days)'])+'\n')
 print('Simulation done! Now starting the optimization process...')
