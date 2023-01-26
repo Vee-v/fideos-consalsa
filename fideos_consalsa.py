@@ -37,6 +37,20 @@ bool_mask = TOI_df['TFOPWG Disposition'] == 'PC'
 TOI_df = TOI_df[bool_mask]
 # bool_mask = TOI_dfMag['TFOPWG Disposition'] == 'APC'
 # TOI_dfAPC = TOI_dfMag[bool_mask]
+days_range = input('Choose the number of days to simulate:\n\t')
+days_range = int(days_range)
+date_input = input('Choose a CLT monday or wednesday for when to start the simulation with the format\n\tyyyy-mm-dd:\n\t')
+date = date_input.split('-')
+try:
+    weekday = datetime(int(date[0]), int(date[1]), int(date[2])).weekday()
+except:
+    raise Exception('Wrong format for date. The format is:\n\tyyyy-mm-dd')
+if weekday != 0 and weekday != 2:
+    raise Exception('Please choose a valid date (Monday or Wednesday)')
+if weekday == 0:
+    print(f'Observing plan starts on\n\tMonday {date[0]}/{date[1]}/{date[2]}.\n')
+else :
+    print(f'Observing plan starts on\n\tWednesday {date[0]}, {date[1]}, {date[2]}.\n')
 print('Getting TOIs < V=9.5')
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
@@ -118,20 +132,7 @@ for i in dontObserve:
 print("Number of TOIs PCs under V mag 9.5:", len(TOI_df))
 print("Number of CTOIs PCs under V mag 9.5:", len(CTOI_df),'\n')
 # Comienza el ciclo
-days_range = input('Choose the number of days to simulate:\n\t')
-days_range = int(days_range)
-date_input = input('Choose a CLT monday or wednesday for when to start the simulation with the format\n\tyyyy-mm-dd:\n\t')
-date = date_input.split('-')
-try:
-    weekday = datetime(int(date[0]), int(date[1]), int(date[2])).weekday()
-except:
-    raise Exception('Wrong format for date. The format is:\n\tyyyy-mm-dd')
-if weekday != 0 and weekday != 2:
-    raise Exception('Please choose a valid date (Monday or Wednesday)')
-if weekday == 0:
-    print(f'Observing plan starts on\n\tMonday {date[0]}/{date[1]}/{date[2]}.')
-else :
-    print(f'Observing plan starts on\n\tWednesday {date[0]}, {date[1]}, {date[2]}.')
+
 laSilla = EarthLocation.from_geodetic(-70.7375, -29.2575, [2347])
 with open('nightStartTime.txt', 'w') as f:
     pass
