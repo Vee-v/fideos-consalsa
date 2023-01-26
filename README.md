@@ -8,6 +8,6 @@ numpy
 
 pandas
 
-astropy
+astropy & astroquery
 
 gurobi 10
