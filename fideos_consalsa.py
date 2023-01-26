@@ -1,7 +1,8 @@
 import pandas as pd
 import numpy as np
 import warnings
-# import json
+import time
+from astroquery.simbad import Simbad
 from astropy import units as u
 from astropy.coordinates import SkyCoord , Angle, get_sun, EarthLocation, AltAz, get_moon
 from astropy.coordinates.erfa_astrom import erfa_astrom, ErfaAstromInterpolator
@@ -20,36 +21,80 @@ print("Download finished!")
 #  Filtering CTOIs promoted to TOIs
 CTOI_df = CTOI_df[np.array(np.isnan(CTOI_df['Promoted to TOI']))]
 
-# magMask = np.zeros(len(CTOI_df))
-# i = 0
-# for toi in CTOI_df.iloc:
-#     print('looping :(')
-#     url = f"https://exofop.ipac.caltech.edu/tess/target.php?id={toi['TIC ID']}&json"
-#     response = urlopen(url)
-#     data_json = json.loads(response.read())
-#     for mag in data_json['magnitudes']:
-#         if mag['band'] == 'V':
-#             if float(mag['value']) < 9.5:
-#                 magMask[i] = 1
-#     i += 1
-
 print("Number of TOIs:", len(TOI_df))
 print("Number of CTOIs:", len(CTOI_df))
 
+customSimbad = Simbad()
+customSimbad.add_votable_fields('typed_id', 'flux(V)')
+customSimbad.remove_votable_fields('coordinates')
+
 # Creamos un dataframe con PCs y APCs con TESS mag <= 10.
-bool_mask = TOI_df['TESS Mag'] <= 9.5
-TOI_dfMag = TOI_df[bool_mask]
-bool_mask = CTOI_df['TESS Mag'] <= 9.5
-CTOI_df = CTOI_df[bool_mask]
-bool_mask = TOI_dfMag['TFOPWG Disposition'] == 'PC'
-TOI_df = TOI_dfMag[bool_mask]
+# bool_mask = TOI_df['TESS Mag'] <= 9.5
+# TOI_dfMag = TOI_df[bool_mask]
+# bool_mask = CTOI_df['TESS Mag'] <= 9.5
+# CTOI_df = CTOI_df[bool_mask]
+bool_mask = TOI_df['TFOPWG Disposition'] == 'PC'
+TOI_df = TOI_df[bool_mask]
 # bool_mask = TOI_dfMag['TFOPWG Disposition'] == 'APC'
 # TOI_dfAPC = TOI_dfMag[bool_mask]
-bool_mask = CTOI_df['User Disposition'] == 'PC'
-CTOI_df = CTOI_df[bool_mask]
-# TOI_df = pd.concat([TOI_dfPC, TOI_dfAPC])
-TOI_df['Date TOI Alerted (UTC)'] = pd.to_datetime(TOI_df['Date TOI Alerted (UTC)'])
-TOI_df = TOI_df.sort_values(by='Date TOI Alerted (UTC)', ascending=False)
+print('Getting TOIs < V=9.5')
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    ####
+    aux = np.empty(TOI_df.loc[:, 'TIC ID'].size, dtype='U3')
+    aux[:] = 'TIC'
+    TICS = np.char.add(aux, np.core.defchararray.array(TOI_df.loc[:, 'TIC ID']).decode())
+    vMags = customSimbad.query_objects(TICS)
+
+    if len(vMags.errors) > 0:
+        ra = np.empty(len(vMags.errors), dtype='U11')
+        dec = np.empty(len(vMags.errors), dtype='U12')
+        i = 0
+        for j in vMags.errors:
+            toi = TOI_df[TOI_df['TIC ID'] == int(TICS[j.line - 3].lstrip('TIC'))]
+            ra[i] = toi['RA'].values[0]
+            dec[i] = toi['Dec'].values[0]
+            i += 1
+    i = 0
+    for j in vMags.errors:
+        c = SkyCoord(' '.join([ra[i], dec[i]]), unit=(u.hourangle, u.deg))
+        time.sleep(0.2)
+        try:
+            vMags[j.line - 3]['FLUX_V'] = customSimbad.query_region(c, radius=2*u.arcmin)[0]['FLUX_V']
+        except:
+            print(f'\tCould not retreive FLUX_V for {vMags[j.line - 3]["TYPED_ID"]}')
+        i += 1
+    TOI_df = TOI_df[vMags['FLUX_V'] <= 9.5]
+    ####
+    bool_mask = CTOI_df['User Disposition'] == 'PC'
+    CTOI_df = CTOI_df[bool_mask]
+    print('Getting CTOIs < V=9.5')
+    ####
+    aux = np.empty(CTOI_df.loc[:, 'TIC ID'].size, dtype='U3')
+    aux[:] = 'TIC'
+    TICS = np.char.add(aux, np.core.defchararray.array(CTOI_df.loc[:, 'TIC ID']).decode())
+    vMags = customSimbad.query_objects(TICS)
+
+    if len(vMags.errors) > 0:
+        ra = np.empty(len(vMags.errors), dtype='U11')
+        dec = np.empty(len(vMags.errors), dtype='U12')
+        i = 0
+        for j in vMags.errors:
+            toi = CTOI_df[CTOI_df['TIC ID'] == int(TICS[j.line - 3].lstrip('TIC'))]
+            ra[i] = toi['RA'].values[0]
+            dec[i] = toi['Dec'].values[0]
+            i += 1
+    i = 0
+    for j in vMags.errors:
+        c = SkyCoord(' '.join([ra[i], dec[i]]), unit=(u.hourangle, u.deg))
+        time.sleep(0.2)
+        try:
+            vMags[j.line - 3]['FLUX_V'] = customSimbad.query_region(c, radius=2*u.arcmin)[0]['FLUX_V']
+        except:
+            print(f'\tCould not retreive FLUX_V for {vMags[j.line - 3]["TYPED_ID"]}')
+        i += 1
+    CTOI_df = CTOI_df[vMags['FLUX_V'] <= 9.5]
+    ####
 singlePlanets = np.flatnonzero(np.core.defchararray.find(np.array(list(map(str, TOI_df.index))), '.01') != -1)
 singlePlanets = TOI_df.index[singlePlanets]
 TOI_df = TOI_df.loc[singlePlanets]
@@ -70,8 +115,8 @@ for i in dontObserve:
         CTOI_df = CTOI_df.drop(drop_index)
     print(f'\t{i}')
     # Reads the target names that won't be observed.
-print("Number of TOIs PCs under TESS mag 9.5:", len(TOI_df))
-print("Number of CTOIs PCs under TESS mag 9.5:", len(CTOI_df),'\n')
+print("Number of TOIs PCs under V mag 9.5:", len(TOI_df))
+print("Number of CTOIs PCs under V mag 9.5:", len(CTOI_df),'\n')
 # Comienza el ciclo
 days_range = input('Choose the number of days to simulate:\n\t')
 days_range = int(days_range)
