@@ -17,7 +17,7 @@ print(f'Current working directory: {cwd}')
 print(f'Home directory: {home}')
 if cwd == home:
     print('Working from home directory')
-    pth = home
+    pth = home/'fideos-consalsa'
 else:
     print('Assuming SALSA is ran in git folder.')
     pth = Path()
