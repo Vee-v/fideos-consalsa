@@ -46,7 +46,8 @@ D_ = list(range(np.shape(nightStart)[0]))
 
 a = {}
 for d in D_:
-    data = np.genfromtxt(pth/f'data{d}.csv', delimiter=',')
+    datacsv = f'data{d}.csv'
+    data = np.genfromtxt(pth/datacsv, delimiter=',')
     if d == 0:
         I_ = range(data.shape[0])
     J_.append(range(data.shape[1]))
