@@ -119,7 +119,7 @@ print("Begin optimization...")
 
 obj = quicksum(quicksum(x[i,h] * Priority[i] * alt[i,h] for i in I_) for h in H_)
 model.setObjective(obj, GRB.MAXIMIZE)
-model.setParam('TimeLimit', 120)
+model.setParam('TimeLimit', 300)
                  
 
 # Actualizar modelo
