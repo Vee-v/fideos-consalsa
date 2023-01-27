@@ -6,12 +6,20 @@
 
 import numpy as np
 from gurobipy import *
+from pathlib import Path
 
-
+cwd = Path.cwd()
+home = Path.home()
+if cwd == home:
+    print('Working from home directory')
+    pth = home
+else:
+    print('Assuming SALSA is ran in git folder.')
+    pth = Path()
 print("Reading data from files...")
 
-specObs = np.genfromtxt('specObservations.txt', delimiter='|')
-nightStart = np.genfromtxt('nightStartTime.txt', delimiter='|').astype(int)
+specObs = np.genfromtxt(pth/'specObservations.txt', delimiter='|')
+nightStart = np.genfromtxt(pth/'nightStartTime.txt', delimiter='|').astype(int)
 
 #Accessing data from files
 names = specObs[:,0].astype(int)
@@ -38,7 +46,7 @@ D_ = list(range(np.shape(nightStart)[0]))
 
 a = {}
 for d in D_:
-    data = np.genfromtxt(f'data{d}.csv', delimiter=',')
+    data = np.genfromtxt(pth/f'data{d}.csv', delimiter=',')
     if d == 0:
         I_ = range(data.shape[0])
     J_.append(range(data.shape[1]))
@@ -123,15 +131,15 @@ print("Optimization completed")
 
 print("Generating text files ...")
 
-f = open('Planer_por_fecha.txt', 'w')
+f = open(pth/'Planer_por_fecha.txt', 'w')
 f.write(f'El dia 0 corresponde al {nightStart[0,1]}-{nightStart[0,2]}-{nightStart[0,3]}')
 f.close()
-f = open('Planer_por_target.txt', 'w')
+f = open(pth/'Planer_por_target.txt', 'w')
 f.close()
 
 previous_d = -1
 cnt = 0
-with open('Planer_por_fecha.txt', 'a') as file:
+with open(pth/'Planer_por_fecha.txt', 'a') as file:
     for h in H_:
         for i in I_:
             if x[i,h].x>0:
@@ -149,7 +157,7 @@ with open('Planer_por_fecha.txt', 'a') as file:
            
        
 previous_i = -1
-with open('Planer_por_target.txt', 'a') as file:
+with open(pth/'Planer_por_target.txt', 'a') as file:
     for i in I_:
         for h in H_:
             if x[i,h].x>0:
