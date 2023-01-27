@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import warnings
 import time
+from pathlib import Path
 from astroquery.simbad import Simbad
 from astropy import units as u
 from astropy.coordinates import SkyCoord , Angle, get_sun, EarthLocation, AltAz, get_moon
@@ -10,6 +11,16 @@ from astropy.time import Time, TimeDelta
 from datetime import datetime
 # from urllib.request import urlopen
 
+cwd = Path.cwd()
+home = Path.home()
+print(f'Current working directory: {cwd}')
+print(f'Home directory: {home}')
+if cwd == home:
+    print('Working from home directory')
+    pth = home
+else:
+    print('Assuming SALSA is ran in git folder.')
+    pth = Path()
 
 print("Downloading the latest TOI list...")
 TOI_url = "https://exofop.ipac.caltech.edu/tess/download_toi.php?sort=toi&output=pipe"
@@ -115,7 +126,7 @@ TOI_df = TOI_df.loc[singlePlanets]
 singlePlanets = np.flatnonzero(np.core.defchararray.find(np.array(list(map(str, CTOI_df.index))), '.01') != -1)
 singlePlanets = CTOI_df.index[singlePlanets]
 CTOI_df = CTOI_df.loc[singlePlanets]
-with open('dontObserve.txt', 'r') as f:
+with open(pth/'dontObserve.txt', 'r') as f:
     dontObserve = [line.rstrip() for line in f]
 print('The following targets will not be considered for observations:')
 for i in dontObserve:
@@ -134,7 +145,7 @@ print("Number of CTOIs PCs under V mag 9.5:", len(CTOI_df),'\n')
 # Comienza el ciclo
 
 laSilla = EarthLocation.from_geodetic(-70.7375, -29.2575, [2347])
-with open('nightStartTime.txt', 'w') as f:
+with open(pth/'nightStartTime.txt', 'w') as f:
     pass
     # Creates the text file or cleans it
 contador = 0
@@ -162,7 +173,7 @@ with warnings.catch_warnings():
         obsTimeDelta = TimeDelta((obsTimeDelta.value * 24 // 1) / 24)
         steps = int(np.round(obsTimeDelta.sec, 0) / 60)
         obsDateTime = twiBegin - .5*u.hour + obsTimeDelta * np.linspace(0, 1, steps+1)
-        with open('nightStartTime.txt', 'a') as f:
+        with open(pth/'nightStartTime.txt', 'a') as f:
             f.write(str(day)+'|'+
                     str(obsDateTime[0].datetime.year)+'|'+
                     str(obsDateTime[0].datetime.month)+'|'+
@@ -208,9 +219,9 @@ with warnings.catch_warnings():
         print(f'Simulating nights: {np.round((day+1) * 100 /days_range, 2)}%', end="\r", flush=True)
         pd.DataFrame(sampledOutput).to_csv(f"data{contador}.csv", index=False, header=False)
         contador += 1
-with open('specObservations.txt', 'w') as f:
+with open(pth/'specObservations.txt', 'w') as f:
     pass
-with open('specObservations.txt', 'a') as f:
+with open(pth/'specObservations.txt', 'a') as f:
     for target in TOI_df.iloc:
         if target['Period (days)'] > days_range / 2 + 1 or target['Period (days)'] == 0:
             prio = '0'
@@ -223,4 +234,3 @@ with open('specObservations.txt', 'a') as f:
         else:
             prio = str(np.exp(-(target['TESS Mag'] - 9)))
         f.write(str(target['TIC ID']) +'|'+ prio +'|'+ str(target['Period (days)'])+'\n')
-print('Simulation done! Now starting the optimization process...')
