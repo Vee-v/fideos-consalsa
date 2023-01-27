@@ -217,7 +217,7 @@ with warnings.catch_warnings():
                         x += 1
             y += 1
         print(f'Simulating nights: {np.round((day+1) * 100 /days_range, 2)}%', end="\r", flush=True)
-        pd.DataFrame(sampledOutput).to_csv(f"data{contador}.csv", index=False, header=False)
+        pd.DataFrame(sampledOutput).to_csv(pth/f"data{contador}.csv", index=False, header=False)
         contador += 1
 with open(pth/'specObservations.txt', 'w') as f:
     pass
