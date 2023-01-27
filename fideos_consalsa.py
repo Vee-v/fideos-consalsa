@@ -9,7 +9,6 @@ from astropy.coordinates import SkyCoord , Angle, get_sun, EarthLocation, AltAz,
 from astropy.coordinates.erfa_astrom import erfa_astrom, ErfaAstromInterpolator
 from astropy.time import Time, TimeDelta
 from datetime import datetime
-# from urllib.request import urlopen
 
 cwd = Path.cwd()
 home = Path.home()
@@ -21,6 +20,21 @@ if cwd == home:
 else:
     print('Assuming SALSA is ran in git folder.')
     pth = Path()
+
+days_range = input('Choose the number of days to simulate:\n\t')
+days_range = int(days_range)
+date_input = input('Choose a CLT monday or wednesday for when to start the simulation with the format\n\tyyyy-mm-dd:\n\t')
+date = date_input.split('-')
+try:
+    weekday = datetime(int(date[0]), int(date[1]), int(date[2])).weekday()
+except:
+    raise Exception('Wrong format for date. The format is:\n\tyyyy-mm-dd')
+if weekday != 0 and weekday != 2:
+    raise Exception('Please choose a valid date (Monday or Wednesday)')
+if weekday == 0:
+    print(f'Observing plan starts on\n\tMonday {date[0]}/{date[1]}/{date[2]}.\n')
+else :
+    print(f'Observing plan starts on\n\tWednesday {date[0]}, {date[1]}, {date[2]}.\n')
 
 print("Downloading the latest TOI list...")
 TOI_url = "https://exofop.ipac.caltech.edu/tess/download_toi.php?sort=toi&output=pipe"
@@ -39,30 +53,10 @@ customSimbad = Simbad()
 customSimbad.add_votable_fields('typed_id', 'flux(V)')
 customSimbad.remove_votable_fields('coordinates')
 
-# Creamos un dataframe con PCs y APCs con TESS mag <= 10.
-# bool_mask = TOI_df['TESS Mag'] <= 9.5
-# TOI_dfMag = TOI_df[bool_mask]
-# bool_mask = CTOI_df['TESS Mag'] <= 9.5
-# CTOI_df = CTOI_df[bool_mask]
 bool_mask = TOI_df['TFOPWG Disposition'] == 'PC'
 TOI_df = TOI_df[bool_mask]
-# bool_mask = TOI_dfMag['TFOPWG Disposition'] == 'APC'
-# TOI_dfAPC = TOI_dfMag[bool_mask]
-days_range = input('Choose the number of days to simulate:\n\t')
-days_range = int(days_range)
-date_input = input('Choose a CLT monday or wednesday for when to start the simulation with the format\n\tyyyy-mm-dd:\n\t')
-date = date_input.split('-')
-try:
-    weekday = datetime(int(date[0]), int(date[1]), int(date[2])).weekday()
-except:
-    raise Exception('Wrong format for date. The format is:\n\tyyyy-mm-dd')
-if weekday != 0 and weekday != 2:
-    raise Exception('Please choose a valid date (Monday or Wednesday)')
-if weekday == 0:
-    print(f'Observing plan starts on\n\tMonday {date[0]}/{date[1]}/{date[2]}.\n')
-else :
-    print(f'Observing plan starts on\n\tWednesday {date[0]}, {date[1]}, {date[2]}.\n')
-print('Getting TOIs < V=9.5')
+
+print('Getting TOIs with magV <= 9.5')
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     ####
@@ -93,7 +87,7 @@ with warnings.catch_warnings():
     ####
     bool_mask = CTOI_df['User Disposition'] == 'PC'
     CTOI_df = CTOI_df[bool_mask]
-    print('Getting CTOIs < V=9.5')
+    print('Getting CTOIs with magV <= 9.5')
     ####
     aux = np.empty(CTOI_df.loc[:, 'TIC ID'].size, dtype='U3')
     aux[:] = 'TIC'
@@ -152,12 +146,13 @@ contador = 0
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     for day in range(days_range):
-        if weekday == 0:  # Monday
-            if not(day % 7 == 0 or (day + 5) % 7 == 0):
-                continue  # In this version this statement skips days that are not M,W.
-        elif weekday == 2:  # Wednesday
-            if not(day % 7 == 0 or (day + 2) % 7 == 0):
-                continue  # In this version this statement skips days that are not W,M.
+#         if weekday == 0:  # Monday
+#             #      monday          wednesday
+#             if not(day % 7 == 0 or (day + 5) % 7 == 0):
+#                 continue  # In this version this statement skips days that are not M,W.
+#         elif weekday == 2:  # Wednesday
+#             if not(day % 7 == 0 or (day + 2) % 7 == 0):
+#                 continue  # In this version this statement skips days that are not W,M.
         times = Time(datetime(int(date[0]), int(date[1]), int(date[2]), 23, 59, 0)) + day*u.day + np.linspace(-6, 9, 901)* u.hour
         # Ahora se busca el momento donde el sol cruza los -18° de altitud desde la posicion en La Silla
 
