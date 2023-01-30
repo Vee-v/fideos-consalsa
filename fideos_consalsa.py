@@ -45,6 +45,8 @@ print("Download finished!")
 
 #  Filtering CTOIs promoted to TOIs
 CTOI_df = CTOI_df[np.array(np.isnan(CTOI_df['Promoted to TOI']))]
+# Filtering lipponen CTOIs (EBs)
+CTOI_df = CTOI_df[CTOI_df['User'] != 'lipponen']
 
 print("Number of TOIs:", len(TOI_df))
 print("Number of CTOIs:", len(CTOI_df))
